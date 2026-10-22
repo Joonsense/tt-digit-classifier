@@ -1,7 +1,7 @@
 /*
  * A whole handwritten digit classifier (64 to 10 linear layer, scikit-learn digits) as hardware.
  * The 640 INT4 weights are constants in the logic. Send an 8 x 8 image as 8 bytes of 1 bit pixels,
- * one byte per clock; the digit appears on the 7 segment display three clocks after the last byte.
+ * one byte per clock; the digit appears on the 7 segment display four clocks after the last byte.
  * SPDX-License-Identifier: Apache-2.0
  *
  *   ui_in[7:0]  PIXELS     8 pixels of one image row, pixel 0 (left) in bit 0

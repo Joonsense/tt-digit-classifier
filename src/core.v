@@ -5,7 +5,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
                   output reg [3:0] digit, output reg done_toggle, output reg have_result, output busy,
                   output [79:0] scores);
   reg [2:0] index;
-  reg pending, r_valid, r_first, r_last;
+  reg pending, picked, r_valid, r_first, r_last;
   reg signed [7:0] acc0;
   reg signed [7:0] acc1;
   reg signed [7:0] acc2;
@@ -2676,41 +2676,54 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
     endcase
   wire signed [7:0] t9 = t9_0 + t9_1;
   reg signed [7:0] r9;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
-  wire right_m0_1 = acc1 > acc0;
-  wire signed [7:0] v_m0_1 = right_m0_1 ? acc1 : acc0;
-  wire [3:0] i_m0_1 = right_m0_1 ? 4'd1 : 4'd0;
-  wire right_m0_2 = acc2 > v_m0_1;
-  wire signed [7:0] v_m0_2 = right_m0_2 ? acc2 : v_m0_1;
-  wire [3:0] i_m0_2 = right_m0_2 ? 4'd2 : i_m0_1;
-  wire right_m3_4 = acc4 > acc3;
-  wire signed [7:0] v_m3_4 = right_m3_4 ? acc4 : acc3;
-  wire [3:0] i_m3_4 = right_m3_4 ? 4'd4 : 4'd3;
-  wire right_m0_4 = v_m3_4 > v_m0_2;
-  wire signed [7:0] v_m0_4 = right_m0_4 ? v_m3_4 : v_m0_2;
-  wire [3:0] i_m0_4 = right_m0_4 ? i_m3_4 : i_m0_2;
-  wire right_m5_6 = acc6 > acc5;
-  wire signed [7:0] v_m5_6 = right_m5_6 ? acc6 : acc5;
-  wire [3:0] i_m5_6 = right_m5_6 ? 4'd6 : 4'd5;
-  wire right_m5_7 = acc7 > v_m5_6;
-  wire signed [7:0] v_m5_7 = right_m5_7 ? acc7 : v_m5_6;
-  wire [3:0] i_m5_7 = right_m5_7 ? 4'd7 : i_m5_6;
-  wire right_m8_9 = acc9 > acc8;
-  wire signed [7:0] v_m8_9 = right_m8_9 ? acc9 : acc8;
-  wire [3:0] i_m8_9 = right_m8_9 ? 4'd9 : 4'd8;
-  wire right_m5_9 = v_m8_9 > v_m5_7;
-  wire signed [7:0] v_m5_9 = right_m5_9 ? v_m8_9 : v_m5_7;
-  wire [3:0] i_m5_9 = right_m5_9 ? i_m8_9 : i_m5_7;
-  wire right_m0_9 = v_m5_9 > v_m0_4;
+  wire right_g0l = acc1 > acc0;
+  wire signed [7:0] v_g0l = right_g0l ? acc1 : acc0;
+  wire [3:0] i_g0l = right_g0l ? 4'd1 : 4'd0;
+  wire right_g0r = acc3 > acc2;
+  wire signed [7:0] v_g0r = right_g0r ? acc3 : acc2;
+  wire [3:0] i_g0r = right_g0r ? 4'd3 : 4'd2;
+  wire right_g0 = v_g0r > v_g0l;
+  wire signed [7:0] v_g0 = right_g0 ? v_g0r : v_g0l;
+  wire [3:0] i_g0 = right_g0 ? i_g0r : i_g0l;
+  wire signed [7:0] gv0_next = v_g0;
+  wire [3:0] gi0_next = i_g0;
+  reg signed [7:0] gv0;
+  reg [3:0] gi0;
+  wire right_g1l = acc5 > acc4;
+  wire signed [7:0] v_g1l = right_g1l ? acc5 : acc4;
+  wire [3:0] i_g1l = right_g1l ? 4'd5 : 4'd4;
+  wire right_g1 = acc6 > v_g1l;
+  wire signed [7:0] v_g1 = right_g1 ? acc6 : v_g1l;
+  wire [3:0] i_g1 = right_g1 ? 4'd6 : i_g1l;
+  wire signed [7:0] gv1_next = v_g1;
+  wire [3:0] gi1_next = i_g1;
+  reg signed [7:0] gv1;
+  reg [3:0] gi1;
+  wire right_g2l = acc8 > acc7;
+  wire signed [7:0] v_g2l = right_g2l ? acc8 : acc7;
+  wire [3:0] i_g2l = right_g2l ? 4'd8 : 4'd7;
+  wire right_g2 = acc9 > v_g2l;
+  wire signed [7:0] v_g2 = right_g2 ? acc9 : v_g2l;
+  wire [3:0] i_g2 = right_g2 ? 4'd9 : i_g2l;
+  wire signed [7:0] gv2_next = v_g2;
+  wire [3:0] gi2_next = i_g2;
+  reg signed [7:0] gv2;
+  reg [3:0] gi2;
+  wire right_fl = gv1 > gv0;
+  wire signed [7:0] v_fl = right_fl ? gv1 : gv0;
+  wire [3:0] i_fl = right_fl ? gi1 : gi0;
+  wire right_f = gv2 > v_fl;
   /* verilator lint_off UNUSEDSIGNAL */
-  wire signed [7:0] v_m0_9 = right_m0_9 ? v_m5_9 : v_m0_4;
+  wire signed [7:0] v_f = right_f ? gv2 : v_fl;
   /* verilator lint_on UNUSEDSIGNAL */
-  wire [3:0] i_m0_9 = right_m0_9 ? i_m5_9 : i_m0_4;
-  assign busy = index != 0 || r_valid || pending;
+  wire [3:0] i_f = right_f ? gi2 : i_fl;
+  assign busy = index != 0 || r_valid || pending || picked;
   assign scores = {acc9, acc8, acc7, acc6, acc5, acc4, acc3, acc2, acc1, acc0};   // 마지막 이미지의 점수 (다음 이미지 첫 바이트까지 유지)
   always @(posedge clk) begin
     if (rst) begin
       index <= 0; pending <= 1'b0; digit <= 4'd0; done_toggle <= 1'b0; have_result <= 1'b0;
-      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0;
+      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0; picked <= 1'b0;
+      gv0 <= 0; gv1 <= 0; gv2 <= 0; gi0 <= 4'd0; gi1 <= 4'd0; gi2 <= 4'd0;
       r0 <= 0;
       r1 <= 0;
       r2 <= 0;
@@ -2733,9 +2746,14 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       acc9 <= 0;
     end else begin
       pending <= 1'b0;
+      picked <= 1'b0;
       r_valid <= 1'b0;
-      if (pending) begin
-        digit <= i_m0_9; done_toggle <= ~done_toggle; have_result <= 1'b1;
+      if (pending) begin   // 점수는 이 클록에만 확정돼 있을 수 있다 (다음 이미지가 바로 이어지면) → 묶음별 승자를 잡아 둔다
+        gv0 <= gv0_next; gv1 <= gv1_next; gv2 <= gv2_next; gi0 <= gi0_next; gi1 <= gi1_next; gi2 <= gi2_next;
+        picked <= 1'b1;
+      end
+      if (picked) begin
+        digit <= i_f; done_toggle <= ~done_toggle; have_result <= 1'b1;
       end
       if (r_valid) begin
         acc0 <= r_first ? 1 + r0 : acc0 + r0;

@@ -3,7 +3,7 @@
 **[Draw a digit in the browser (1 bit mode is this model)](https://joonsense.github.io/tt-int4-dot-accelerator/)**
 
 The whole model is the chip. A 64 to 10 handwritten digit classifier, with its 640 four bit weights compiled into
-sky130 logic as constants. Send an 8 x 8 image as 8 bytes, one per clock; three clocks later the digit is on the 7 segment
+sky130 logic as constants. Send an 8 x 8 image as 8 bytes, one per clock; four clocks later the digit is on the 7 segment
 display. Back to back that is **one image every 8 clocks: 80 multiply accumulates per clock, 6.25 million images per
 second at 50 MHz**, with no weights to load and no host arithmetic.
 

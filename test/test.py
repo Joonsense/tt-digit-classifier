@@ -87,7 +87,7 @@ async def test_abort_and_gaps(dut):
         dut.uio_in.value = IN_VALID
         await FallingEdge(dut.clk)
     dut.uio_in.value = 0
-    await ClockCycles(dut.clk, 4)
+    await ClockCycles(dut.clk, 8)
     assert [d for _, d, _ in results] == [want], f"{results} != [{want}]"
 
 

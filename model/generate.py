@@ -42,41 +42,55 @@ def rtl(weights, bias, bits, group=4):
     accs = '\n'.join(f"  reg signed [{aw - 1}:0] acc{c};" for c in range(10))
     update = '\n'.join(f"        acc{c} <= r_first ? {bias[c]} + r{c} : acc{c} + r{c};" for c in range(10))
     capture = '\n'.join(f"        r{c} <= t{c};" for c in range(10))
-    # argmax 트리: 왼쪽이 낮은 클래스, 오른쪽이 '크면' 이긴다 → 동점은 낮은 클래스
-    def tree(ids):
-        if len(ids) == 1:
-            return f"acc{ids[0]}", f"4'd{ids[0]}", []
-        mid = (len(ids) + 1) // 2
-        lv, li, ld = tree(ids[:mid])
-        rv, ri, rd = tree(ids[mid:])
-        name = f"m{ids[0]}_{ids[-1]}"
+    # argmax 두 단: (0~3) (4~6) (7~9) 묶음 안에서 먼저 고르고 등록, 다음 클록에 셋 중에서 고른다.
+    # 왼쪽(낮은 번호)이 동점에서 이긴다 (오른쪽이 '크면' 이긴다) → numpy argmax 와 같다.
+    def tree(leaves, tag):
+        if len(leaves) == 1:
+            return leaves[0][0], leaves[0][1], []
+        mid = (len(leaves) + 1) // 2
+        lv, li, ld = tree(leaves[:mid], tag + 'l')
+        rv, ri, rd = tree(leaves[mid:], tag + 'r')
+        name = tag
         decl = ld + rd + [f"  wire right_{name} = {rv} > {lv};",
                           f"  wire signed [{aw - 1}:0] v_{name} = right_{name} ? {rv} : {lv};",
                           f"  wire [3:0] i_{name} = right_{name} ? {ri} : {li};"]
         return f"v_{name}", f"i_{name}", decl
-    root, best, decls = tree(list(range(10)))
+    groups = [list(range(0, 4)), list(range(4, 7)), list(range(7, 10))]
+    decls = []
+    for g, ids in enumerate(groups):
+        v, i, d = tree([(f"acc{c}", f"4'd{c}") for c in ids], f"g{g}")
+        decls += d + [f"  wire signed [{aw - 1}:0] gv{g}_next = {v};", f"  wire [3:0] gi{g}_next = {i};"]
+        decls += [f"  reg signed [{aw - 1}:0] gv{g};", f"  reg [3:0] gi{g};"]
+    root, best, d = tree([(f"gv{g}", f"gi{g}") for g in range(3)], "f")
+    decls += d
     # 최상위 비교의 값 쪽은 쓰지 않는다 (번호만 쓴다)
-    decls = [f"  /* verilator lint_off UNUSEDSIGNAL */\n{d}\n  /* verilator lint_on UNUSEDSIGNAL */" if d.lstrip().startswith(f"wire signed [{aw - 1}:0] {root} ") else d for d in decls]
+    decls = [f"  /* verilator lint_off UNUSEDSIGNAL */\n{x}\n  /* verilator lint_on UNUSEDSIGNAL */" if x.lstrip().startswith(f"wire signed [{aw - 1}:0] {root} ") else x for x in decls]
     return f"""module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, input abort,
                   output reg [3:0] digit, output reg done_toggle, output reg have_result, output busy,
                   output [{10 * aw - 1}:0] scores);
   reg [{iw - 1}:0] index;
-  reg pending, r_valid, r_first, r_last;
+  reg pending, picked, r_valid, r_first, r_last;
 {accs}
 {chr(10).join(lines)}
 {chr(10).join(decls)}
-  assign busy = index != 0 || r_valid || pending;
+  assign busy = index != 0 || r_valid || pending || picked;
   assign scores = {{{', '.join(f'acc{c}' for c in reversed(range(10)))}}};   // 마지막 이미지의 점수 (다음 이미지 첫 바이트까지 유지)
   always @(posedge clk) begin
     if (rst) begin
       index <= 0; pending <= 1'b0; digit <= 4'd0; done_toggle <= 1'b0; have_result <= 1'b0;
-      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0;
+      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0; picked <= 1'b0;
+      gv0 <= 0; gv1 <= 0; gv2 <= 0; gi0 <= 4'd0; gi1 <= 4'd0; gi2 <= 4'd0;
 {chr(10).join(f'      r{c} <= 0;' for c in range(10))}
 {chr(10).join(f'      acc{c} <= 0;' for c in range(10))}
     end else begin
       pending <= 1'b0;
+      picked <= 1'b0;
       r_valid <= 1'b0;
-      if (pending) begin
+      if (pending) begin   // 점수는 이 클록에만 확정돼 있을 수 있다 (다음 이미지가 바로 이어지면) → 묶음별 승자를 잡아 둔다
+        gv0 <= gv0_next; gv1 <= gv1_next; gv2 <= gv2_next; gi0 <= gi0_next; gi1 <= gi1_next; gi2 <= gi2_next;
+        picked <= 1'b1;
+      end
+      if (picked) begin
         digit <= {best}; done_toggle <= ~done_toggle; have_result <= 1'b1;
       end
       if (r_valid) begin

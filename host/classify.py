@@ -22,7 +22,7 @@ def classify(tt, rows):
         tt.uio_in.value = IN_VALID
         tt.clock_project_once()
     tt.uio_in.value = 0
-    for _ in range(6):   # the digit is ready three clocks after the last row
+    for _ in range(8):   # the digit is ready four clocks after the last row
         tt.clock_project_once()
         status = int(tt.uio_out.value)
         if (status >> 3) & 1 != before:
