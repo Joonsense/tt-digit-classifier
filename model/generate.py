@@ -38,9 +38,10 @@ def rtl(weights, bias, bits, group=4):
                          + f"\n      default: {name} = 0;\n    endcase")
             terms.append(name)
         lines.append(f"  wire signed [{aw - 1}:0] t{c} = {' + '.join(terms)};")
-        lines.append(f"  wire signed [{aw - 1}:0] start{c} = {bias[c]} + t{c};")
+        lines.append(f"  reg signed [{aw - 1}:0] r{c};   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)")
     accs = '\n'.join(f"  reg signed [{aw - 1}:0] acc{c};" for c in range(10))
-    update = '\n'.join(f"        acc{c} <= index == 0 ? start{c} : acc{c} + t{c};" for c in range(10))
+    update = '\n'.join(f"        acc{c} <= r_first ? {bias[c]} + r{c} : acc{c} + r{c};" for c in range(10))
+    capture = '\n'.join(f"        r{c} <= t{c};" for c in range(10))
     # argmax 트리: 왼쪽이 낮은 클래스, 오른쪽이 '크면' 이긴다 → 동점은 낮은 클래스
     def tree(ids):
         if len(ids) == 1:
@@ -60,27 +61,34 @@ def rtl(weights, bias, bits, group=4):
                   output reg [3:0] digit, output reg done_toggle, output reg have_result, output busy,
                   output [{10 * aw - 1}:0] scores);
   reg [{iw - 1}:0] index;
-  reg pending;
+  reg pending, r_valid, r_first, r_last;
 {accs}
 {chr(10).join(lines)}
 {chr(10).join(decls)}
-  assign busy = index != 0 || pending;
+  assign busy = index != 0 || r_valid || pending;
   assign scores = {{{', '.join(f'acc{c}' for c in reversed(range(10)))}}};   // 마지막 이미지의 점수 (다음 이미지 첫 바이트까지 유지)
   always @(posedge clk) begin
     if (rst) begin
       index <= 0; pending <= 1'b0; digit <= 4'd0; done_toggle <= 1'b0; have_result <= 1'b0;
+      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0;
+{chr(10).join(f'      r{c} <= 0;' for c in range(10))}
 {chr(10).join(f'      acc{c} <= 0;' for c in range(10))}
     end else begin
       pending <= 1'b0;
+      r_valid <= 1'b0;
       if (pending) begin
         digit <= {best}; done_toggle <= ~done_toggle; have_result <= 1'b1;
+      end
+      if (r_valid) begin
+{update}
+        pending <= r_last;
       end
       if (abort) begin
         index <= 0;
       end else if (in_valid) begin
-{update}
+{capture}
+        r_valid <= 1'b1; r_first <= index == 0; r_last <= index == {iw}'d{nbytes - 1};
         index <= index == {iw}'d{nbytes - 1} ? 0 : index + 1'b1;
-        pending <= index == {iw}'d{nbytes - 1};
       end
     end
   end

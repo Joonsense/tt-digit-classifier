@@ -3,7 +3,7 @@
 **[Draw a digit in the browser (1 bit mode is this model)](https://joonsense.github.io/tt-int4-dot-accelerator/)**
 
 The whole model is the chip. A 64 to 10 handwritten digit classifier, with its 640 four bit weights compiled into
-sky130 logic as constants. Send an 8 x 8 image as 8 bytes, one per clock; two clocks later the digit is on the 7 segment
+sky130 logic as constants. Send an 8 x 8 image as 8 bytes, one per clock; three clocks later the digit is on the 7 segment
 display. Back to back that is **one image every 8 clocks: 80 multiply accumulates per clock, 6.25 million images per
 second at 50 MHz**, with no weights to load and no host arithmetic.
 
@@ -18,7 +18,7 @@ Tiny Tapeout GitHub Actions flow on this repo.
 | Accuracy | 91.39% on the 360 image test split (float model: 95.83%) |
 | Bit exactness | all 3,600 class scores read back from the chip equal the Python integer model |
 | Area | 1x2 tiles (first layout 58.5% utilization; tt-fit predicted 56.9%) |
-| Timing | 50 MHz target; first layout missed the slow corner by 0.65 ns on the input pin path, inputs are now registered (result in Actions) |
+| Timing | 50 MHz target. First layout missed the slow corner by 0.65 ns (pixel pins fanned out to all 10 classes). Registering the inputs closed it at +0.14 ns; registering each row sum too buys more margin (result in Actions) |
 | Fault check | the tests fail on a build with one bias off by one (360 scores differ) |
 
 The layout result of the Tiny Tapeout flow (utilization, slack, DRC, LVS, gate level tests) is in this repo's Actions.

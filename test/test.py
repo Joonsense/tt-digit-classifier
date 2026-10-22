@@ -97,12 +97,20 @@ async def test_all_scores_bit_exact(dut):
     await start(dut)
     bad = 0
     for image, want in zip(DATA['images'], DATA['scores']):
+        before = state(dut)[0]
         for byte in image:
             dut.ui_in.value = byte
             dut.uio_in.value = IN_VALID
             await FallingEdge(dut.clk)
+        dut.uio_in.value = 0
+        for _ in range(10):   # wait for DONE: the scores are final and held from then until the next image starts
+            await FallingEdge(dut.clk)
+            await Timer(1, unit="ns")
+            if state(dut)[0] != before:
+                break
+        else:
+            assert False, "no result"
         dut.uio_in.value = SCORES
-        await FallingEdge(dut.clk)
         for c in range(10):
             dut.ui_in.value = c
             await Timer(1, unit="ns")

@@ -4,8 +4,8 @@ A complete handwritten digit classifier (one 64 to 10 linear layer trained on sc
 in logic. The 640 weights (4 bit) and 10 biases are constants inside the design, so nothing has to be loaded.
 
 An image is 8 x 8 pixels at 1 bit each: 8 bytes, one per clock, pixel 0 of each row in bit 0. Every clock the chip adds
-that row's contribution to all 10 class scores at once (80 multiply accumulates per clock). Two clocks after the 8th byte
-(inputs are registered once) the highest score wins (ties go to the lower digit), the digit appears on the 7 segment display and on `uio[7:4]`, and
+that row's contribution to all 10 class scores at once (80 multiply accumulates per clock). Three clocks after the 8th byte
+(inputs and per row sums are registered) the highest score wins (ties go to the lower digit), the digit appears on the 7 segment display and on `uio[7:4]`, and
 `DONE` toggles. Images can follow back to back: one result every 8 clocks, 6.25 million images per second at 50 MHz.
 
 Test set accuracy is 91.39% (360 images). Every score the chip computes matches the Python integer model bit for bit.

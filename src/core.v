@@ -5,7 +5,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
                   output reg [3:0] digit, output reg done_toggle, output reg have_result, output busy,
                   output [79:0] scores);
   reg [2:0] index;
-  reg pending;
+  reg pending, r_valid, r_first, r_last;
   reg signed [7:0] acc0;
   reg signed [7:0] acc1;
   reg signed [7:0] acc2;
@@ -281,7 +281,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t0_1 = 0;
     endcase
   wire signed [7:0] t0 = t0_0 + t0_1;
-  wire signed [7:0] start0 = 1 + t0;
+  reg signed [7:0] r0;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t1_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t1_0 = 0;
@@ -547,7 +547,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t1_1 = 0;
     endcase
   wire signed [7:0] t1 = t1_0 + t1_1;
-  wire signed [7:0] start1 = -7 + t1;
+  reg signed [7:0] r1;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t2_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t2_0 = 0;
@@ -813,7 +813,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t2_1 = 0;
     endcase
   wire signed [7:0] t2 = t2_0 + t2_1;
-  wire signed [7:0] start2 = 0 + t2;
+  reg signed [7:0] r2;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t3_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t3_0 = 0;
@@ -1079,7 +1079,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t3_1 = 0;
     endcase
   wire signed [7:0] t3 = t3_0 + t3_1;
-  wire signed [7:0] start3 = 2 + t3;
+  reg signed [7:0] r3;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t4_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t4_0 = 0;
@@ -1345,7 +1345,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t4_1 = 0;
     endcase
   wire signed [7:0] t4 = t4_0 + t4_1;
-  wire signed [7:0] start4 = 5 + t4;
+  reg signed [7:0] r4;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t5_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t5_0 = 0;
@@ -1611,7 +1611,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t5_1 = 0;
     endcase
   wire signed [7:0] t5 = t5_0 + t5_1;
-  wire signed [7:0] start5 = 0 + t5;
+  reg signed [7:0] r5;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t6_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t6_0 = 0;
@@ -1877,7 +1877,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t6_1 = 0;
     endcase
   wire signed [7:0] t6 = t6_0 + t6_1;
-  wire signed [7:0] start6 = -2 + t6;
+  reg signed [7:0] r6;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t7_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t7_0 = 0;
@@ -2143,7 +2143,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t7_1 = 0;
     endcase
   wire signed [7:0] t7 = t7_0 + t7_1;
-  wire signed [7:0] start7 = 4 + t7;
+  reg signed [7:0] r7;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t8_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t8_0 = 0;
@@ -2409,7 +2409,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t8_1 = 0;
     endcase
   wire signed [7:0] t8 = t8_0 + t8_1;
-  wire signed [7:0] start8 = -3 + t8;
+  reg signed [7:0] r8;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   reg signed [7:0] t9_0;
   always @(*) case ({index, in_data[3:0]})
       {3'd0, 4'd0}: t9_0 = 0;
@@ -2675,7 +2675,7 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       default: t9_1 = 0;
     endcase
   wire signed [7:0] t9 = t9_0 + t9_1;
-  wire signed [7:0] start9 = -2 + t9;
+  reg signed [7:0] r9;   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)
   wire right_m0_1 = acc1 > acc0;
   wire signed [7:0] v_m0_1 = right_m0_1 ? acc1 : acc0;
   wire [3:0] i_m0_1 = right_m0_1 ? 4'd1 : 4'd0;
@@ -2705,11 +2705,22 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
   wire signed [7:0] v_m0_9 = right_m0_9 ? v_m5_9 : v_m0_4;
   /* verilator lint_on UNUSEDSIGNAL */
   wire [3:0] i_m0_9 = right_m0_9 ? i_m5_9 : i_m0_4;
-  assign busy = index != 0 || pending;
+  assign busy = index != 0 || r_valid || pending;
   assign scores = {acc9, acc8, acc7, acc6, acc5, acc4, acc3, acc2, acc1, acc0};   // 마지막 이미지의 점수 (다음 이미지 첫 바이트까지 유지)
   always @(posedge clk) begin
     if (rst) begin
       index <= 0; pending <= 1'b0; digit <= 4'd0; done_toggle <= 1'b0; have_result <= 1'b0;
+      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0;
+      r0 <= 0;
+      r1 <= 0;
+      r2 <= 0;
+      r3 <= 0;
+      r4 <= 0;
+      r5 <= 0;
+      r6 <= 0;
+      r7 <= 0;
+      r8 <= 0;
+      r9 <= 0;
       acc0 <= 0;
       acc1 <= 0;
       acc2 <= 0;
@@ -2722,24 +2733,38 @@ module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, inp
       acc9 <= 0;
     end else begin
       pending <= 1'b0;
+      r_valid <= 1'b0;
       if (pending) begin
         digit <= i_m0_9; done_toggle <= ~done_toggle; have_result <= 1'b1;
+      end
+      if (r_valid) begin
+        acc0 <= r_first ? 1 + r0 : acc0 + r0;
+        acc1 <= r_first ? -7 + r1 : acc1 + r1;
+        acc2 <= r_first ? 0 + r2 : acc2 + r2;
+        acc3 <= r_first ? 2 + r3 : acc3 + r3;
+        acc4 <= r_first ? 5 + r4 : acc4 + r4;
+        acc5 <= r_first ? 0 + r5 : acc5 + r5;
+        acc6 <= r_first ? -2 + r6 : acc6 + r6;
+        acc7 <= r_first ? 4 + r7 : acc7 + r7;
+        acc8 <= r_first ? -3 + r8 : acc8 + r8;
+        acc9 <= r_first ? -2 + r9 : acc9 + r9;
+        pending <= r_last;
       end
       if (abort) begin
         index <= 0;
       end else if (in_valid) begin
-        acc0 <= index == 0 ? start0 : acc0 + t0;
-        acc1 <= index == 0 ? start1 : acc1 + t1;
-        acc2 <= index == 0 ? start2 : acc2 + t2;
-        acc3 <= index == 0 ? start3 : acc3 + t3;
-        acc4 <= index == 0 ? start4 : acc4 + t4;
-        acc5 <= index == 0 ? start5 : acc5 + t5;
-        acc6 <= index == 0 ? start6 : acc6 + t6;
-        acc7 <= index == 0 ? start7 : acc7 + t7;
-        acc8 <= index == 0 ? start8 : acc8 + t8;
-        acc9 <= index == 0 ? start9 : acc9 + t9;
+        r0 <= t0;
+        r1 <= t1;
+        r2 <= t2;
+        r3 <= t3;
+        r4 <= t4;
+        r5 <= t5;
+        r6 <= t6;
+        r7 <= t7;
+        r8 <= t8;
+        r9 <= t9;
+        r_valid <= 1'b1; r_first <= index == 0; r_last <= index == 3'd7;
         index <= index == 3'd7 ? 0 : index + 1'b1;
-        pending <= index == 3'd7;
       end
     end
   end
