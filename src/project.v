@@ -1,7 +1,7 @@
 /*
  * A whole handwritten digit classifier (64 to 10 linear layer, scikit-learn digits) as hardware.
  * The 640 INT4 weights are constants in the logic. Send an 8 x 8 image as 8 bytes of 1 bit pixels,
- * one byte per clock; the digit appears on the 7 segment display one clock after the last byte.
+ * one byte per clock; the digit appears on the 7 segment display two clocks after the last byte.
  * SPDX-License-Identifier: Apache-2.0
  *
  *   ui_in[7:0]  PIXELS     8 pixels of one image row, pixel 0 (left) in bit 0
@@ -29,7 +29,17 @@ module tt_um_joonsense_digit_classifier (
   wire done_toggle, have_result, busy;
   wire [79:0] scores;
 
-  digit_core core (.clk(clk), .rst(!rst_n), .in_valid(uio_in[0]), .in_data(ui_in), .abort(uio_in[1]),
+  // Inputs are registered once: each pixel bit feeds the tables of all 10 classes, and with the 4 ns input delay of the
+  // Tiny Tapeout pads that path missed 50 MHz at the slow corner after routing (-0.65 ns). One clock of latency, same rate.
+  reg [7:0] pixels;
+  reg valid, restart;
+  always @(posedge clk) begin
+    pixels <= ui_in;
+    valid <= rst_n && uio_in[0];
+    restart <= rst_n && uio_in[1];
+  end
+
+  digit_core core (.clk(clk), .rst(!rst_n), .in_valid(valid), .in_data(pixels), .abort(restart),
                    .digit(digit), .done_toggle(done_toggle), .have_result(have_result), .busy(busy), .scores(scores));
   wire [7:0] score = ui_in[3:0] < 4'd10 ? scores[ui_in[3:0] * 8 +: 8] : 8'd0;
 
