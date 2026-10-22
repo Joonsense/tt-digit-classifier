@@ -21,6 +21,7 @@ Tiny Tapeout GitHub Actions flow on this repo.
 | Timing | 50 MHz, setup slack +5.26 ns at the slow corner (ss, 100C, 1.60V) |
 | Signoff | DRC 0, LVS 0, antenna 0, Tiny Tapeout precheck passed, gate level tests passed |
 | Power (estimate) | about 1.5 mW at 50 MHz, typical corner (LibreLane report) |
+| FPGA | builds for the iCE40UP5K Tiny Tapeout simulator board: 1,076 of 5,280 logic cells, 28.7 MHz max ([bitstream](https://github.com/Joonsense/tt-digit-classifier/releases/tag/fpga-v1), not tried on a board) |
 | Fault check | the tests fail on a build with one bias off by one (360 scores differ) |
 
 Timing took four layouts. The first missed the slow corner by 0.65 ns: every pixel pin fanned out to about 80 gates,
