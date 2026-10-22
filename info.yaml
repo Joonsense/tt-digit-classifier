@@ -1,0 +1,44 @@
+# Tiny Tapeout project information
+project:
+  title:        "Digit classifier in logic, 80 MAC/clk"
+  author:       "Kai Kim"
+  discord:      ""
+  description:  "Whole 64 to 10 handwritten digit classifier with weights as constants: 8 bytes in, digit on the 7 segment display"
+  language:     "Verilog"
+  clock_hz:     50000000
+
+  tiles: "1x2"
+
+  top_module:  "tt_um_joonsense_digit_classifier"
+
+  source_files:
+    - "core.v"
+    - "project.v"
+
+pinout:
+  ui[0]: "PIXEL0"
+  ui[1]: "PIXEL1"
+  ui[2]: "PIXEL2"
+  ui[3]: "PIXEL3"
+  ui[4]: "PIXEL4"
+  ui[5]: "PIXEL5"
+  ui[6]: "PIXEL6"
+  ui[7]: "PIXEL7"
+  uo[0]: "SEG_A"
+  uo[1]: "SEG_B"
+  uo[2]: "SEG_C"
+  uo[3]: "SEG_D"
+  uo[4]: "SEG_E"
+  uo[5]: "SEG_F"
+  uo[6]: "SEG_G"
+  uo[7]: "DONE"
+  uio[0]: "IN_VALID"
+  uio[1]: "ABORT"
+  uio[2]: "SCORES"
+  uio[3]: "DONE"
+  uio[4]: "DIGIT0"
+  uio[5]: "DIGIT1"
+  uio[6]: "DIGIT2"
+  uio[7]: "DIGIT3"
+
+yaml_version: 6
