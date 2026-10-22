@@ -1,0 +1,8 @@
+name: tt-fit
+on: [push, workflow_dispatch]
+jobs:
+  fit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Joonsense/tt-fit@v1
