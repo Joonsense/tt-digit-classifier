@@ -13,8 +13,9 @@ def model(path):
     return d['weights'], d['bias'], d['inputs'], d['labels'], d['act_bits']
 
 
-def rtl(weights, bias, bits, group=4):
-    per = 8 // bits
+def rtl(weights, bias, bits, group=4, ppc=None, rstage=True):
+    """ppc: 클록당 픽셀 수 (기본 = 바이트 하나, 1비트면 8). rstage: 클래스 합을 한 번 등록 (1x2 타이밍용, 1x1 은 끈다)."""
+    per = ppc or 8 // bits
     nbytes = 64 // per
     iw = max(1, (nbytes - 1).bit_length())
     # 점수 범위: |bias| + Σ|W|·max(x) → 부호 폭
@@ -38,7 +39,8 @@ def rtl(weights, bias, bits, group=4):
                          + f"\n      default: {name} = 0;\n    endcase")
             terms.append(name)
         lines.append(f"  wire signed [{aw - 1}:0] t{c} = {' + '.join(terms)};")
-        lines.append(f"  reg signed [{aw - 1}:0] r{c};   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)")
+        lines.append(f"  reg signed [{aw - 1}:0] r{c};   // 바이트 하나의 클래스 합을 한 번 등록 (표·덧셈 경로와 누산을 나눈다)"
+                     if rstage else f"  wire signed [{aw - 1}:0] r{c} = t{c};")
     accs = '\n'.join(f"  reg signed [{aw - 1}:0] acc{c};" for c in range(10))
     update = '\n'.join(f"        acc{c} <= r_first ? {bias[c]} + r{c} : acc{c} + r{c};" for c in range(10))
     capture = '\n'.join(f"        r{c} <= t{c};" for c in range(10))
@@ -65,11 +67,21 @@ def rtl(weights, bias, bits, group=4):
     decls += d
     # 최상위 비교의 값 쪽은 쓰지 않는다 (번호만 쓴다)
     decls = [f"  /* verilator lint_off UNUSEDSIGNAL */\n{x}\n  /* verilator lint_on UNUSEDSIGNAL */" if x.lstrip().startswith(f"wire signed [{aw - 1}:0] {root} ") else x for x in decls]
+    last = f"{iw}'d{nbytes - 1}"
+    if rstage:
+        stage_decl = "reg pending, picked, r_valid, r_first, r_last;"
+        stage_reset_head = "r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0; "
+        stage_reset = "\n" + "\n".join(f"      r{c} <= 0;" for c in range(10))
+        stage_clear = "\n      r_valid <= 1'b0;"
+        capture = capture + f"\n        r_valid <= 1'b1; r_first <= index == 0; r_last <= index == {last};\n"
+    else:
+        stage_decl = (f"reg pending, picked;\n  wire r_valid = in_valid && !abort, r_first = index == 0, r_last = index == {last};")
+        stage_reset_head = stage_reset = stage_clear = capture = ""
     return f"""module digit_core(input clk, input rst, input in_valid, input [7:0] in_data, input abort,
                   output reg [3:0] digit, output reg done_toggle, output reg have_result, output busy,
                   output [{10 * aw - 1}:0] scores);
   reg [{iw - 1}:0] index;
-  reg pending, picked, r_valid, r_first, r_last;
+  {stage_decl}
 {accs}
 {chr(10).join(lines)}
 {chr(10).join(decls)}
@@ -78,14 +90,12 @@ def rtl(weights, bias, bits, group=4):
   always @(posedge clk) begin
     if (rst) begin
       index <= 0; pending <= 1'b0; digit <= 4'd0; done_toggle <= 1'b0; have_result <= 1'b0;
-      r_valid <= 1'b0; r_first <= 1'b0; r_last <= 1'b0; picked <= 1'b0;
-      gv0 <= 0; gv1 <= 0; gv2 <= 0; gi0 <= 4'd0; gi1 <= 4'd0; gi2 <= 4'd0;
-{chr(10).join(f'      r{c} <= 0;' for c in range(10))}
+      {stage_reset_head}picked <= 1'b0;
+      gv0 <= 0; gv1 <= 0; gv2 <= 0; gi0 <= 4'd0; gi1 <= 4'd0; gi2 <= 4'd0;{stage_reset}
 {chr(10).join(f'      acc{c} <= 0;' for c in range(10))}
     end else begin
       pending <= 1'b0;
-      picked <= 1'b0;
-      r_valid <= 1'b0;
+      picked <= 1'b0;{stage_clear}
       if (pending) begin   // 점수는 이 클록에만 확정돼 있을 수 있다 (다음 이미지가 바로 이어지면) → 묶음별 승자를 잡아 둔다
         gv0 <= gv0_next; gv1 <= gv1_next; gv2 <= gv2_next; gi0 <= gi0_next; gi1 <= gi1_next; gi2 <= gi2_next;
         picked <= 1'b1;
@@ -100,9 +110,7 @@ def rtl(weights, bias, bits, group=4):
       if (abort) begin
         index <= 0;
       end else if (in_valid) begin
-{capture}
-        r_valid <= 1'b1; r_first <= index == 0; r_last <= index == {iw}'d{nbytes - 1};
-        index <= index == {iw}'d{nbytes - 1} ? 0 : index + 1'b1;
+{capture}        index <= index == {iw}'d{nbytes - 1} ? 0 : index + 1'b1;
       end
     end
   end
@@ -110,8 +118,8 @@ endmodule
 """, nbytes, aw
 
 
-def pack(px, bits):
-    per = 8 // bits
+def pack(px, bits, per=None):
+    per = per or 8 // bits
     return [sum(px[i + j] << (bits * j) for j in range(per)) for i in range(0, 64, per)]
 
 
