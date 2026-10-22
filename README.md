@@ -17,11 +17,16 @@ Tiny Tapeout GitHub Actions flow on this repo.
 | Throughput | 1 image per 8 clocks, 80 MAC/clock (measured back to back over all 360 test images) |
 | Accuracy | 91.39% on the 360 image test split (float model: 95.83%) |
 | Bit exactness | all 3,600 class scores read back from the chip equal the Python integer model |
-| Area | 1x2 tiles (first layout 58.5% utilization; tt-fit predicted 56.9%) |
-| Timing | 50 MHz target. First layout missed the slow corner by 0.65 ns (pixel pins fanned out to all 10 classes). Registering the inputs closed it at +0.14 ns; registering each row sum too buys more margin (result in Actions) |
+| Area | 1x2 tiles, 75.0% placement utilization |
+| Timing | 50 MHz, setup slack +5.26 ns at the slow corner (ss, 100C, 1.60V) |
+| Signoff | DRC 0, LVS 0, antenna 0, Tiny Tapeout precheck passed, gate level tests passed |
+| Power (estimate) | about 1.5 mW at 50 MHz, typical corner (LibreLane report) |
 | Fault check | the tests fail on a build with one bias off by one (360 scores differ) |
 
-The layout result of the Tiny Tapeout flow (utilization, slack, DRC, LVS, gate level tests) is in this repo's Actions.
+Timing took four layouts. The first missed the slow corner by 0.65 ns: every pixel pin fanned out to about 80 gates,
+which pre layout timing cannot see. Registering the inputs closed it at +0.14 ns. Registering each row's sums moved the
+critical path to the 10 way comparison (−0.004 ns), and splitting that comparison in two closed it at +5.26 ns.
+Latency is 4 clocks; the rate is still one image per 8 clocks.
 
 ## Why a fixed model, and why two tiles
 
@@ -30,7 +35,7 @@ A general accelerator on these 8 data pins tops out at 8 MAC per clock with 1 bi
 through the pins, and so do the results going out. Freeze the weights into the logic and both costs disappear. Each
 input byte now feeds all 10 classes at once, so the same pins carry 10 times the work.
 
-The cost is area: ten parallel score adders are about 11,600 um2 of cells, more than one tile holds. The sweep that
+The cost is area: ten parallel score adders plus the pipeline are about 14,700 um2 of cells, more than one tile holds. The sweep that
 decided the structure is in `model/`: grouping 4 pixels into one constant table per class was the smallest form
 (10,700 um2 for the core; a whole byte table was 13,100). Cutting weights to 3 bits would not have saved it either:
 accuracy fell 2 to 4 points.
