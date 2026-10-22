@@ -1,6 +1,8 @@
 # A digit classifier made of logic: 80 MACs per clock in two Tiny Tapeout tiles
 
-**[Draw a digit in the browser (1 bit mode is this model)](https://joonsense.github.io/tt-int4-dot-accelerator/)**
+[![Draw a digit. The chip answers in 8 clocks.](docs/card.png)](https://joonsense.github.io/tt-int4-dot-accelerator/)
+
+**[Draw a digit in the browser and watch this chip's arithmetic answer](https://joonsense.github.io/tt-int4-dot-accelerator/)**
 
 The whole model is the chip. A 64 to 10 handwritten digit classifier, with its 640 four bit weights compiled into
 sky130 logic as constants. Send an 8 x 8 image as 8 bytes, one per clock; four clocks later the digit is on the 7 segment
